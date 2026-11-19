@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Router Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas:#edf0f3;
+      --paper:#fbfaf7;
+      --navy:#10253f;
+      --ink:#17212b;
+      --muted:#697580;
+      --line:#d9dde1;
+      --orange:#f06a2a;
+      --orange-dark:#c94b11;
+      --green:#1d7a55;
+      --green-soft:#dceee6;
+      --red:#b83b37;
+      --red-soft:#f6dfdc;
+      --mono:"Space Mono", ui-monospace, monospace;
+      --sans:"Instrument Sans", system-ui, sans-serif;
+    }
+
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body {
+      margin:0;
+      min-height:100vh;
+      background:
+        linear-gradient(rgba(16,37,63,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,37,63,.035) 1px, transparent 1px),
+        var(--canvas);
+      background-size:24px 24px;
+      color:var(--ink);
+      font:15px/1.5 var(--sans);
+    }
+    :focus-visible { outline:3px solid rgba(240,106,42,.38); outline-offset:3px; }
+
+    .shell {
+      width:min(1180px, calc(100% - 32px));
+      margin:22px auto 56px;
+      background:var(--paper);
+      border:1px solid #ccd2d7;
+      border-radius:4px;
+      box-shadow:12px 12px 0 rgba(16,37,63,.08);
+      overflow:hidden;
+    }
+
+    .masthead {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      min-height:74px;
+      padding:14px 22px;
+      background:var(--navy);
+      color:white;
+    }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .mark {
+      display:grid;
+      place-items:center;
+      width:42px;
+      height:42px;
+      border:1px solid rgba(255,255,255,.28);
+      border-radius:50%;
+      color:#ff9d70;
+      font:400 20px var(--mono);
+    }
+    .brand-name { font-size:18px; font-weight:700; letter-spacing:.01em; }
+    .brand-meta {
+      margin-top:-2px;
+      color:#aeb9c6;
+      font:10px var(--mono);
+      letter-spacing:.14em;
+      text-transform:uppercase;
+    }
+    .status-chip {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:99px;
+      color:#dfe6ed;
+      font-size:12px;
+    }
+    .status-chip i { width:7px; height:7px; border-radius:50%; background:#51b98a; box-shadow:0 0 0 3px rgba(81,185,138,.14); }
+
+    .layout {
+      display:grid;
+      grid-template-columns:270px minmax(0,1fr);
+      min-height:620px;
+    }
+    .sidebar {
+      padding:22px;
+      border-right:1px solid var(--line);
+      background:#f5f4ef;
+    }
+    .eyebrow {
+      color:var(--orange-dark);
+      font:11px var(--mono);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .device-name {
+      margin:8px 0 4px;
+      min-height:38px;
+      font-size:28px;
+      line-height:1.15;
+      letter-spacing:-.03em;
+    }
+    .device-address { color:var(--muted); font:12px var(--mono); }
+
+    .facts { margin:28px 0 24px; border-top:1px solid var(--line); }
+    .fact {
+      display:grid;
+      grid-template-columns:78px 1fr;
+      gap:10px;
+      padding:12px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .fact span { color:var(--muted); font-size:12px; }
+    .fact strong { font:11px/1.45 var(--mono); overflow-wrap:anywhere; }
+
+    .run {
+      width:100%;
+      min-height:46px;
+      border:0;
+      border-radius:3px;
+      background:var(--orange);
+      color:white;
+      font:700 14px var(--sans);
+      cursor:pointer;
+      box-shadow:4px 4px 0 var(--orange-dark);
+    }
+    .run:hover { background:#df5d20; transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--orange-dark); }
+    .run:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--orange-dark); }
+    .run:disabled { opacity:.7; cursor:progress; }
+
+    .content { min-width:0; padding:22px; }
+    .empty {
+      display:grid;
+      place-items:center;
+      min-height:450px;
+      border:1px dashed #bcc4cb;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(240,106,42,.08), transparent 120px);
+      text-align:center;
+    }
+    .empty-inner { max-width:340px; }
+    .empty-number { color:#cfd5da; font:700 72px/1 var(--mono); }
+    .empty h2 { margin:12px 0 6px; font-size:22px; }
+    .empty p { margin:0; color:var(--muted); }
+
+    .error {
+      margin-bottom:18px;
+      padding:14px 16px;
+      border-left:4px solid var(--red);
+      background:var(--red-soft);
+      color:#752523;
+    }
+
+    .interfaces { margin-bottom:16px; }
+    .section-head {
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .section-head h2 { margin:0; font-size:16px; }
+    .interface-count { color:var(--muted); font:11px var(--mono); }
+    .iflist { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .iface {
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+      padding:10px;
+      border:1px solid var(--line);
+      background:white;
+    }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); }
+    .iface.up .dot { background:var(--green); }
+    .iface.down .dot { background:var(--red); }
+    .iface.off .dot { background:#7d8791; }
+    .iface-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:11px var(--mono); }
+    .iface-ip { color:var(--muted); font:9px var(--mono); }
+    .iface-state { color:var(--muted); font-size:10px; }
+
+    .console {
+      border:1px solid var(--line);
+      background:white;
+    }
+    .console-bar {
+      display:flex;
+      align-items:center;
+      min-height:48px;
+      border-bottom:1px solid var(--line);
+      background:#f5f4ef;
+      overflow-x:auto;
+    }
+    .tab {
+      align-self:stretch;
+      border:0;
+      border-right:1px solid var(--line);
+      background:transparent;
+      color:var(--muted);
+      padding:12px 14px;
+      font:10px var(--mono);
+      white-space:nowrap;
+      cursor:pointer;
+    }
+    .tab[aria-selected="true"] {
+      border-top:3px solid var(--orange);
+      background:white;
+      color:var(--ink);
+    }
+    .copy {
+      margin-left:auto;
+      margin-right:8px;
+      border:1px solid var(--line);
+      border-radius:3px;
+      background:white;
+      padding:7px 9px;
+      color:var(--ink);
+      font-size:11px;
+      cursor:pointer;
+    }
+    .pane pre {
+      margin:0;
+      max-height:520px;
+      overflow:auto;
+      padding:18px;
+      background:#101a27;
+      color:#dce5ee;
+      font:11px/1.65 var(--mono);
+      tab-size:2;
+    }
+
+    @media (max-width:820px) {
+      .layout { grid-template-columns:1fr; }
+      .sidebar { border-right:0; border-bottom:1px solid var(--line); }
+      .facts { display:grid; grid-template-columns:1fr 1fr; }
+      .fact { grid-template-columns:1fr; }
+      .iflist { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:520px) {
+      .shell { width:calc(100% - 20px); margin-top:10px; box-shadow:none; }
+      .masthead { padding:12px 14px; }
+      .status-chip { display:none; }
+      .layout { min-height:0; }
+      .sidebar, .content { padding:14px; }
+      .facts { grid-template-columns:1fr; }
+      .iflist { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">R</div>
+        <div>
+          <div class="brand-name" id="title">Router Console</div>
+          <div class="brand-meta">Network operations desk</div>
+        </div>
+      </div>
+      <div class="status-chip"><i></i><span>Console ready</span></div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="eyebrow">Active device</div>
+        <h1 class="device-name" id="device-name">Waiting for run</h1>
+        <div class="device-address">192.168.10.82 · Telnet</div>
+
+        <div class="facts">
+          <div class="fact"><span>Model</span><strong id="f-model">—</strong></div>
+          <div class="fact"><span>IOS</span><strong id="f-ver">—</strong></div>
+          <div class="fact"><span>Uptime</span><strong id="f-up">—</strong></div>
+        </div>
+
+        <form method="post" id="run-form">
+          <button class="run" id="run-button" type="submit">
+            {{ "RUN AGAIN" if results or error else "RUN COMMANDS" }}
+          </button>
+        </form>
+      </aside>
+
+      <main class="content">
+        {% if error %}
+        <div class="error" role="alert"><strong>Collection failed.</strong> {{ error }}</div>
+        {% elif not results %}
+        <section class="empty">
+          <div class="empty-inner">
+            <div class="empty-number">00</div>
+            <h2>Ready for telemetry</h2>
+            <p>Run the command set to collect device status and configuration.</p>
+          </div>
+        </section>
+        {% endif %}
+
+        {% if results %}
+        <section class="interfaces" id="interfaces" hidden>
+          <div class="section-head">
+            <h2>Interface map</h2>
+            <span class="interface-count" id="interface-count"></span>
+          </div>
+          <div class="iflist" id="iflist"></div>
+        </section>
+
+        <section class="console">
+          <div class="console-bar" role="tablist" aria-label="Command output">
+            {% for cmd, output in results.items() %}
+            <button class="tab" role="tab" id="tab{{ loop.index }}" aria-controls="pane{{ loop.index }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ cmd }}</button>
+            {% endfor %}
+            <button class="copy" type="button" id="copy">COPY</button>
+          </div>
+          {% for cmd, output in results.items() %}
+          <div class="pane" role="tabpanel" id="pane{{ loop.index }}" aria-labelledby="tab{{ loop.index }}" {{ '' if loop.first else 'hidden' }}>
+            <pre data-cmd="{{ cmd }}">{{ output }}</pre>
+          </div>
+          {% endfor %}
+        </section>
+        {% endif %}
+      </main>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var form = document.getElementById('run-form');
+    var button = document.getElementById('run-button');
+    form.addEventListener('submit', function () {
+      button.disabled = true;
+      button.textContent = 'COLLECTING…';
+    });
+
+    function out(cmd) {
+      var pre = document.querySelector('pre[data-cmd="' + cmd + '"]');
+      return pre ? pre.textContent : '';
+    }
+
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (other) {
+          var selected = other === tab;
+          other.setAttribute('aria-selected', selected);
+          document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+        });
+      });
+    });
+
+    var copy = document.getElementById('copy');
+    if (copy) {
+      copy.addEventListener('click', function () {
+        var pane = document.querySelector('.pane:not([hidden]) pre');
+        navigator.clipboard.writeText(pane ? pane.textContent : '').then(function () {
+          copy.textContent = 'COPIED';
+          setTimeout(function () { copy.textContent = 'COPY'; }, 1400);
+        });
+      });
+    }
+
+    var versionText = out('show version');
+    var configText = out('show running-config');
+    var hostname = (configText.match(/^hostname\s+(\S+)/m) || [])[1];
+    var model = (versionText.match(/^[Cc]isco\s+(\S+).*?(?:processor|memory)/m) || [])[1];
+    var ios = (versionText.match(/Version\s+([^,\s]+)/) || [])[1];
+    var uptime = (versionText.match(/uptime is\s+(.+)$/m) || [])[1];
+
+    if (hostname) {
+      document.getElementById('device-name').textContent = hostname;
+      document.getElementById('title').textContent = hostname;
+      document.title = hostname + ' · Router Console';
+    }
+    [['f-model', model], ['f-ver', ios], ['f-up', uptime]].forEach(function (item) {
+      if (item[1]) document.getElementById(item[0]).textContent = item[1];
+    });
+
+    var interfaceText = out('show ip interface brief');
+    var pattern = /^(\S+)\s+(\S+)\s+\w+\s+\w+\s+(administratively down|up|down)\s+(up|down)\s*$/gm;
+    var match;
+    var total = 0;
+    var active = 0;
+    var list = document.getElementById('iflist');
+
+    while (list && (match = pattern.exec(interfaceText)) !== null) {
+      total++;
+      var cls = 'off';
+      var state = 'Admin down';
+      if (match[3] === 'up' && match[4] === 'up') {
+        cls = 'up';
+        state = 'Up';
+        active++;
+      } else if (match[3] === 'down') {
+        cls = 'down';
+        state = 'Down';
+      }
+
+      var card = document.createElement('div');
+      card.className = 'iface ' + cls;
+      card.innerHTML =
+        '<span class="dot"></span>' +
+        '<div><div class="iface-name">' + match[1] + '</div>' +
+        '<div class="iface-ip">' + (match[2] === 'unassigned' ? 'No IP' : match[2]) + '</div></div>' +
+        '<span class="iface-state">' + state + '</span>';
+      list.appendChild(card);
+    }
+
+    if (total) {
+      document.getElementById('interface-count').textContent = active + ' OF ' + total + ' UP';
+      document.getElementById('interfaces').hidden = false;
+    }
+  })();
+  </script>
+</body>
+</html>
